@@ -1,0 +1,209 @@
+---
+import '../styles/global.css';
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="generator" content={Astro.generator} />
+    <meta name="description" content="Smolfjord Game Studio — game demos and prototypes." />
+    <title>Smolfjord Game Studio</title>
+  </head>
+  <body>
+    <header>
+      <div class="header-inner">
+        <div class="studio-mark">&#9651;</div>
+        <span class="studio-name">SMOLFJORD GAME STUDIO</span>
+      </div>
+    </header>
+
+    <main>
+      <section class="intro">
+        <h1>Game Demos</h1>
+        <p class="intro-text">Playable prototypes, works-in-progress, and experiments from the workshop.</p>
+      </section>
+
+      <section class="gallery">
+        <article class="game-card">
+          <div class="card-header">
+            <div class="card-title-row">
+              <h2 class="game-title">Supply Fronts</h2>
+              <span class="status-badge">Prototype</span>
+            </div>
+            <span class="game-tag">Strategy / Logistics</span>
+          </div>
+          <p class="game-desc">
+            Mini Metro logistics, Mini Motorways pressure, Memoir '44 combat.
+            Build supply lines, move units, hold the front.
+          </p>
+          <a class="play-link" href="/supply-fronts">Play demo &rarr;</a>
+        </article>
+      </section>
+    </main>
+
+    <footer>
+      <div class="footer-inner">
+        <span class="footer-studio">Smolfjord Game Studio</span>
+        <span class="footer-sep">&mdash;</span>
+        <span class="footer-year">2025</span>
+      </div>
+    </footer>
+  </body>
+</html>
+
+<style>
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 1.25rem 2rem;
+  }
+
+  .header-inner {
+    max-width: 960px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .studio-mark {
+    color: var(--accent);
+    font-size: 1.1rem;
+    line-height: 1;
+  }
+
+  .studio-name {
+    font-family: 'Courier New', 'Courier', monospace;
+    font-size: 0.85rem;
+    letter-spacing: 0.18em;
+    color: var(--muted);
+    font-weight: normal;
+  }
+
+  main {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 3rem 2rem 4rem;
+  }
+
+  .intro {
+    margin-bottom: 2.5rem;
+    border-left: 3px solid var(--accent);
+    padding-left: 1.25rem;
+  }
+
+  .intro h1 {
+    font-size: 2rem;
+    font-weight: normal;
+    letter-spacing: 0.02em;
+    color: var(--text);
+    margin-bottom: 0.4rem;
+  }
+
+  .intro-text {
+    color: var(--muted);
+    font-size: 1rem;
+  }
+
+  .gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .game-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    transition: border-color 0.15s ease;
+  }
+
+  .game-card:hover {
+    border-color: var(--accent);
+  }
+
+  .card-header {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .card-title-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .game-title {
+    font-size: 1.25rem;
+    font-weight: normal;
+    letter-spacing: 0.03em;
+    color: var(--text);
+  }
+
+  .status-badge {
+    font-family: 'Courier New', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    padding: 0.1em 0.5em;
+    line-height: 1.6;
+  }
+
+  .game-tag {
+    font-family: 'Courier New', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .game-desc {
+    font-size: 0.92rem;
+    color: var(--muted);
+    line-height: 1.65;
+    flex: 1;
+  }
+
+  .play-link {
+    display: inline-block;
+    font-family: 'Courier New', monospace;
+    font-size: 0.85rem;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+    border: 1px solid var(--border);
+    padding: 0.45em 1em;
+    transition: background 0.12s ease, border-color 0.12s ease;
+    align-self: flex-start;
+  }
+
+  .play-link:hover {
+    background: rgba(211, 162, 56, 0.1);
+    border-color: var(--accent);
+    text-decoration: none;
+  }
+
+  footer {
+    border-top: 1px solid var(--border-light);
+    padding: 1.25rem 2rem;
+    margin-top: auto;
+  }
+
+  .footer-inner {
+    max-width: 960px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-family: 'Courier New', monospace;
+    font-size: 0.75rem;
+    color: var(--border);
+    letter-spacing: 0.08em;
+  }
+</style>

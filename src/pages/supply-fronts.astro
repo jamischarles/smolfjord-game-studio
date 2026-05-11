@@ -1,0 +1,123 @@
+---
+import '../styles/global.css';
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="generator" content={Astro.generator} />
+    <meta name="description" content="Supply Fronts — strategy/logistics prototype by Smolfjord Game Studio." />
+    <title>Supply Fronts — Smolfjord Game Studio</title>
+  </head>
+  <body>
+    <div class="page-wrapper">
+      <header>
+        <div class="header-inner">
+          <a class="back-link" href="/">&larr; Back to gallery</a>
+          <div class="header-title-group">
+            <span class="game-title">Supply Fronts</span>
+            <span class="game-tag">Strategy / Logistics</span>
+            <span class="status-badge">Prototype</span>
+          </div>
+        </div>
+      </header>
+
+      <div class="demo-container">
+        <iframe
+          src="/games/supply-fronts/"
+          title="Supply Fronts game demo"
+          allowfullscreen
+          frameborder="0"
+        ></iframe>
+      </div>
+    </div>
+  </body>
+</html>
+
+<style>
+  body, html {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  .page-wrapper {
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+  }
+
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 0.75rem 1.5rem;
+    flex-shrink: 0;
+  }
+
+  .header-inner {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  .back-link {
+    font-family: 'Courier New', monospace;
+    font-size: 0.8rem;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    white-space: nowrap;
+    transition: color 0.12s ease;
+  }
+
+  .back-link:hover {
+    color: var(--accent);
+    text-decoration: none;
+  }
+
+  .header-title-group {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .game-title {
+    font-size: 1rem;
+    font-weight: normal;
+    letter-spacing: 0.04em;
+    color: var(--text);
+  }
+
+  .game-tag {
+    font-family: 'Courier New', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .status-badge {
+    font-family: 'Courier New', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    padding: 0.1em 0.45em;
+    line-height: 1.6;
+  }
+
+  .demo-container {
+    flex: 1;
+    min-height: 0;
+  }
+
+  iframe {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border: none;
+    background: var(--bg);
+  }
+</style>
