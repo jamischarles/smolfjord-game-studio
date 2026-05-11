@@ -8,14 +8,14 @@ import '../styles/global.css';
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="generator" content={Astro.generator} />
-    <meta name="description" content="Smolfjord Game Studio — game demos and prototypes." />
-    <title>Smolfjord Game Studio</title>
+    <meta name="description" content="Smolfjord — game demos and prototypes." />
+    <title>Smolfjord</title>
   </head>
   <body>
     <header>
       <div class="header-inner">
         <div class="studio-mark">&#9651;</div>
-        <span class="studio-name">SMOLFJORD GAME STUDIO</span>
+        <span class="studio-name">SMOLFJORD</span>
       </div>
     </header>
 
@@ -27,25 +27,36 @@ import '../styles/global.css';
 
       <section class="gallery">
         <article class="game-card">
-          <div class="card-header">
-            <div class="card-title-row">
-              <h2 class="game-title">Supply Fronts</h2>
-              <span class="status-badge">Prototype</span>
+          <a class="card-thumb" href="/supply-fronts" tabindex="-1" aria-hidden="true">
+            <img
+              src="/screenshots/supply-fronts.png"
+              alt="Supply Fronts screenshot"
+              width="480"
+              height="300"
+              loading="lazy"
+            />
+          </a>
+          <div class="card-body">
+            <div class="card-header">
+              <div class="card-title-row">
+                <h2 class="game-title">Supply Fronts</h2>
+                <span class="status-badge">Prototype</span>
+              </div>
+              <span class="game-tag">Strategy / Logistics</span>
             </div>
-            <span class="game-tag">Strategy / Logistics</span>
+            <p class="game-desc">
+              Mini Metro logistics, Mini Motorways pressure, Memoir '44 combat.
+              Build supply lines, move units, hold the front.
+            </p>
+            <a class="play-link" href="/supply-fronts">Play demo &rarr;</a>
           </div>
-          <p class="game-desc">
-            Mini Metro logistics, Mini Motorways pressure, Memoir '44 combat.
-            Build supply lines, move units, hold the front.
-          </p>
-          <a class="play-link" href="/supply-fronts">Play demo &rarr;</a>
         </article>
       </section>
     </main>
 
     <footer>
       <div class="footer-inner">
-        <span class="footer-studio">Smolfjord Game Studio</span>
+        <span class="footer-studio">Smolfjord</span>
         <span class="footer-sep">&mdash;</span>
         <span class="footer-year">2025</span>
       </div>
@@ -107,29 +118,70 @@ import '../styles/global.css';
   }
 
   .gallery {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    display: flex;
+    flex-direction: column;
     gap: 1.5rem;
   }
 
   .game-card {
     background: var(--panel);
     border: 1px solid var(--border);
-    padding: 1.5rem;
     display: flex;
-    flex-direction: column;
-    gap: 1rem;
+    flex-direction: row;
+    gap: 0;
     transition: border-color 0.15s ease;
+    overflow: hidden;
   }
 
   .game-card:hover {
     border-color: var(--accent);
   }
 
+  .card-thumb {
+    flex-shrink: 0;
+    width: 280px;
+    display: block;
+    overflow: hidden;
+    border-right: 1px solid var(--border);
+  }
+
+  .card-thumb img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: left top;
+    transition: opacity 0.15s ease;
+  }
+
+  .card-thumb:hover img {
+    opacity: 0.85;
+  }
+
+  .card-body {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    flex: 1;
+  }
+
   .card-header {
     display: flex;
     flex-direction: column;
     gap: 0.35rem;
+  }
+
+  @media (max-width: 620px) {
+    .game-card {
+      flex-direction: column;
+    }
+    .card-thumb {
+      width: 100%;
+      height: 180px;
+      border-right: none;
+      border-bottom: 1px solid var(--border);
+    }
   }
 
   .card-title-row {
