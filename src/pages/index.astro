@@ -1,5 +1,29 @@
 ---
 import '../styles/global.css';
+
+const games = [
+  {
+    slug: 'supply-fronts',
+    title: 'Supply Fronts',
+    tag: 'Strategy / Logistics',
+    status: 'Prototype',
+    desc: 'Mini Metro logistics, Mini Motorways pressure, Memoir \'44 combat. Build supply lines, move units, hold the front.',
+  },
+  {
+    slug: 'supply-fronts-motorways',
+    title: 'Roads to Falaise',
+    tag: 'Strategy / Road Building',
+    status: 'Prototype',
+    desc: 'Mini Motorways meets WW2 convoy pressure. Draw road networks from Utah Beach to active objectives before supply demand overwhelms the front.',
+  },
+  {
+    slug: 'supply-fronts-ww2-assets',
+    title: 'Supply Fronts — WW2 Assets',
+    tag: 'Strategy / Logistics',
+    status: 'Prototype',
+    desc: 'Supply Fronts with updated WW2 map assets and La Fiere Bridge demolition objective. Hold Falaise or reach 12 VP in 10 turns.',
+  },
+];
 ---
 
 <html lang="en">
@@ -26,31 +50,30 @@ import '../styles/global.css';
       </section>
 
       <section class="gallery">
-        <article class="game-card">
-          <a class="card-thumb" href="/supply-fronts" tabindex="-1" aria-hidden="true">
-            <img
-              src="/screenshots/supply-fronts.png"
-              alt="Supply Fronts screenshot"
-              width="480"
-              height="300"
-              loading="lazy"
-            />
-          </a>
-          <div class="card-body">
-            <div class="card-header">
-              <div class="card-title-row">
-                <h2 class="game-title">Supply Fronts</h2>
-                <span class="status-badge">Prototype</span>
+        {games.map((game) => (
+          <article class="game-card">
+            <a class="card-thumb" href={`/${game.slug}`} tabindex="-1" aria-hidden="true">
+              <img
+                src={`/screenshots/${game.slug}.png`}
+                alt={`${game.title} screenshot`}
+                width="480"
+                height="300"
+                loading="lazy"
+              />
+            </a>
+            <div class="card-body">
+              <div class="card-header">
+                <div class="card-title-row">
+                  <h2 class="game-title">{game.title}</h2>
+                  <span class="status-badge">{game.status}</span>
+                </div>
+                <span class="game-tag">{game.tag}</span>
               </div>
-              <span class="game-tag">Strategy / Logistics</span>
+              <p class="game-desc">{game.desc}</p>
+              <a class="play-link" href={`/${game.slug}`}>Play demo &rarr;</a>
             </div>
-            <p class="game-desc">
-              Mini Metro logistics, Mini Motorways pressure, Memoir '44 combat.
-              Build supply lines, move units, hold the front.
-            </p>
-            <a class="play-link" href="/supply-fronts">Play demo &rarr;</a>
-          </div>
-        </article>
+          </article>
+        ))}
       </section>
     </main>
 
@@ -172,18 +195,6 @@ import '../styles/global.css';
     gap: 0.35rem;
   }
 
-  @media (max-width: 620px) {
-    .game-card {
-      flex-direction: column;
-    }
-    .card-thumb {
-      width: 100%;
-      height: 180px;
-      border-right: none;
-      border-bottom: 1px solid var(--border);
-    }
-  }
-
   .card-title-row {
     display: flex;
     align-items: center;
@@ -257,5 +268,17 @@ import '../styles/global.css';
     font-size: 0.75rem;
     color: var(--border);
     letter-spacing: 0.08em;
+  }
+
+  @media (max-width: 620px) {
+    .game-card {
+      flex-direction: column;
+    }
+    .card-thumb {
+      width: 100%;
+      height: 180px;
+      border-right: none;
+      border-bottom: 1px solid var(--border);
+    }
   }
 </style>
