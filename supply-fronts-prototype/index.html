@@ -1,0 +1,1982 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Supply Fronts Prototype</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #151711;
+        --panel: #20251d;
+        --panel-2: #2b3126;
+        --line: #59614f;
+        --text: #f2eedf;
+        --muted: #b9b198;
+        --accent: #d3a238;
+        --blue: #5f93b7;
+        --red: #b65b4f;
+        --green: #7d9f63;
+        --rail: #c8c0a6;
+        --road: #d78f46;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: radial-gradient(circle at 20% 10%, #263121 0, transparent 34rem), var(--bg);
+        color: var(--text);
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      button {
+        border: 1px solid #707763;
+        border-radius: 6px;
+        background: #353c31;
+        color: var(--text);
+        font: inherit;
+        min-height: 38px;
+        padding: 0 12px;
+        cursor: pointer;
+      }
+
+      button:hover {
+        border-color: var(--accent);
+      }
+
+      button.active {
+        background: var(--accent);
+        border-color: #f0ca72;
+        color: #1c170c;
+      }
+
+      button:disabled {
+        cursor: not-allowed;
+        opacity: 0.45;
+      }
+
+      .shell {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 340px;
+        min-height: 100vh;
+      }
+
+      .map-wrap {
+        position: relative;
+        min-height: 100vh;
+        overflow: hidden;
+      }
+
+      .tooltip {
+        position: absolute;
+        z-index: 5;
+        max-width: 260px;
+        padding: 10px 11px;
+        border: 1px solid rgba(242, 238, 223, 0.28);
+        border-radius: 8px;
+        background: rgba(17, 20, 15, 0.94);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.28);
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.35;
+        pointer-events: none;
+        transform: translate(14px, 14px);
+      }
+
+      .tooltip[hidden] {
+        display: none;
+      }
+
+      .tooltip strong {
+        display: block;
+        margin-bottom: 3px;
+        color: var(--text);
+        font-size: 13px;
+      }
+
+      .node-hud {
+        position: absolute;
+        z-index: 4;
+        width: 250px;
+        padding: 10px;
+        border: 1px solid rgba(242, 238, 223, 0.28);
+        border-radius: 8px;
+        background: rgba(23, 27, 20, 0.96);
+        box-shadow: 0 16px 38px rgba(0, 0, 0, 0.34);
+        transform: translate(18px, -50%);
+      }
+
+      .node-hud[hidden] {
+        display: none;
+      }
+
+      .hud-head {
+        display: flex;
+        align-items: start;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 8px;
+      }
+
+      .hud-title {
+        color: var(--text);
+        font-size: 14px;
+        font-weight: 800;
+      }
+
+      .hud-meta {
+        color: var(--muted);
+        font-size: 11px;
+        line-height: 1.3;
+      }
+
+      .hud-close {
+        width: 28px;
+        min-height: 28px;
+        padding: 0;
+      }
+
+      .hud-actions {
+        display: grid;
+        gap: 7px;
+      }
+
+      .hud-action {
+        display: grid;
+        grid-template-columns: 76px 1fr;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .hud-action button {
+        min-height: 32px;
+        padding: 0 8px;
+      }
+
+      .hud-reason {
+        color: var(--muted);
+        font-size: 11px;
+        line-height: 1.25;
+      }
+
+      .move-amount {
+        display: grid;
+        grid-template-columns: 32px 1fr 32px;
+        align-items: center;
+        gap: 6px;
+        margin-top: 2px;
+      }
+
+      .move-amount button {
+        min-height: 28px;
+        padding: 0;
+      }
+
+      .move-amount span {
+        color: var(--text);
+        font-size: 12px;
+        font-weight: 800;
+        text-align: center;
+      }
+
+      canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+        min-height: 100vh;
+      }
+
+      .topbar {
+        position: absolute;
+        top: 14px;
+        left: 14px;
+        right: 14px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        pointer-events: none;
+      }
+
+      .title {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        background: rgba(21, 23, 17, 0.86);
+        border: 1px solid rgba(198, 189, 157, 0.24);
+        border-radius: 8px;
+        padding: 10px 12px;
+        backdrop-filter: blur(8px);
+      }
+
+      .title h1 {
+        margin: 0;
+        font-size: 18px;
+        line-height: 1;
+        letter-spacing: 0;
+      }
+
+      .title span {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .stats {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-left: auto;
+      }
+
+      .stat {
+        min-width: 76px;
+        background: rgba(21, 23, 17, 0.86);
+        border: 1px solid rgba(198, 189, 157, 0.24);
+        border-radius: 8px;
+        padding: 8px 10px;
+        backdrop-filter: blur(8px);
+      }
+
+      .stat b {
+        display: block;
+        font-size: 17px;
+      }
+
+      .stat span {
+        display: block;
+        color: var(--muted);
+        font-size: 11px;
+        text-transform: uppercase;
+      }
+
+      aside {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        min-height: 100vh;
+        padding: 14px;
+        background: linear-gradient(180deg, #252b21, #171a15);
+        border-left: 1px solid #3f4638;
+      }
+
+      .section {
+        border: 1px solid #464d40;
+        border-radius: 8px;
+        background: rgba(32, 37, 29, 0.92);
+        padding: 12px;
+      }
+
+      .section h2 {
+        margin: 0 0 10px;
+        font-size: 14px;
+        letter-spacing: 0;
+      }
+
+      .objective {
+        display: grid;
+        gap: 10px;
+      }
+
+      .objective-title {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        color: var(--text);
+        font-size: 13px;
+        font-weight: 700;
+      }
+
+      .objective-copy,
+      .order-copy {
+        margin: 0;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.4;
+      }
+
+      .progress {
+        display: grid;
+        gap: 6px;
+      }
+
+      .progress-row {
+        display: grid;
+        grid-template-columns: 88px 1fr 42px;
+        align-items: center;
+        gap: 8px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .order-box {
+        display: grid;
+        gap: 8px;
+        min-height: 86px;
+        border: 1px solid #555e4b;
+        border-radius: 8px;
+        background: #171b14;
+        padding: 10px;
+      }
+
+      .order-kicker {
+        color: var(--accent);
+        font-size: 11px;
+        font-weight: 800;
+        text-transform: uppercase;
+      }
+
+      .order-title {
+        color: var(--text);
+        font-size: 15px;
+        font-weight: 800;
+      }
+
+      .danger .fill {
+        background: #c86455;
+      }
+
+      .controls {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+
+      .wide {
+        grid-column: 1 / -1;
+      }
+
+      .meters {
+        display: grid;
+        gap: 8px;
+      }
+
+      .meter {
+        display: grid;
+        grid-template-columns: 82px 1fr 36px;
+        align-items: center;
+        gap: 8px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .track {
+        height: 8px;
+        overflow: hidden;
+        border-radius: 99px;
+        background: #11140f;
+      }
+
+      .fill {
+        height: 100%;
+        width: 50%;
+        background: var(--green);
+      }
+
+      .event-log {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        min-height: 150px;
+        max-height: 230px;
+        overflow: auto;
+        padding-right: 4px;
+      }
+
+      .log {
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.35;
+      }
+
+      .log strong {
+        color: var(--text);
+      }
+
+      .legend {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .key {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+      }
+
+      .swatch {
+        width: 18px;
+        height: 10px;
+        border-radius: 2px;
+        background: var(--line);
+      }
+
+      @media (max-width: 920px) {
+        .shell {
+          grid-template-columns: 1fr;
+        }
+
+        aside {
+          min-height: auto;
+          border-left: 0;
+          border-top: 1px solid #3f4638;
+        }
+
+        .map-wrap,
+        canvas {
+          min-height: 62vh;
+        }
+
+        .topbar {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .stats {
+          margin-left: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <section class="map-wrap">
+        <canvas id="game" aria-label="Supply Fronts game map"></canvas>
+        <div class="tooltip" id="tooltip" hidden></div>
+        <div class="node-hud" id="nodeHud" hidden></div>
+        <div class="node-hud" id="routeHud" hidden></div>
+        <div class="topbar">
+          <div class="title">
+            <h1>Supply Fronts</h1>
+            <span>Mini Metro logistics, Mini Motorways pressure, Memoir '44 combat</span>
+          </div>
+          <div class="stats">
+            <div class="stat"><b id="turn">1</b><span>Turn</span></div>
+            <div class="stat"><b id="score">0</b><span>VP</span></div>
+            <div class="stat"><b id="supply">0/0</b><span>Supply</span></div>
+            <div class="stat"><b id="threat">0</b><span>Threat</span></div>
+          </div>
+        </div>
+      </section>
+      <aside>
+        <section class="section">
+          <h2>Objective</h2>
+          <div class="objective">
+            <div class="objective-title"><span>Breakout to Falaise</span><span id="objectiveState">In progress</span></div>
+            <p class="objective-copy">Win by holding Falaise or reaching 12 VP before the end of turn 10. Lose if threat reaches 18, Utah Beach falls, or Allied combat strength collapses.</p>
+            <div class="progress">
+              <div class="progress-row"><span>Victory</span><div class="track"><div id="vpMeter" class="fill"></div></div><b id="vpGoal">0/12</b></div>
+              <div class="progress-row danger"><span>Threat</span><div class="track"><div id="threatMeter" class="fill"></div></div><b id="threatGoal">0/18</b></div>
+            </div>
+          </div>
+        </section>
+        <section class="section">
+          <h2>Command</h2>
+          <div class="controls">
+            <button id="roadBtn" title="Build road">Road</button>
+            <button id="railBtn" title="Build rail">Rail</button>
+            <button id="unitBtn" title="Deploy unit">Unit</button>
+            <button id="moveBtn" title="Move one unit">Move</button>
+            <button id="attackBtn" title="Attack adjacent enemy">Attack</button>
+            <button id="endBtn" class="wide">End Turn</button>
+          </div>
+        </section>
+        <section class="section">
+          <h2>Current Order</h2>
+          <div class="order-box">
+            <div class="order-kicker" id="orderKicker">Road order</div>
+            <div class="order-title" id="orderTitle">Select origin</div>
+            <p class="order-copy" id="orderCopy">Click a node to start a road. Legal destinations will glow. Press Escape or click empty map to cancel.</p>
+          </div>
+        </section>
+        <section class="section">
+          <h2>Stockpile</h2>
+          <div class="meters">
+            <div class="meter"><span>Road crews</span><div class="track"><div id="roadMeter" class="fill"></div></div><b id="roadCount">0</b></div>
+            <div class="meter"><span>Rail crews</span><div class="track"><div id="railMeter" class="fill"></div></div><b id="railCount">0</b></div>
+            <div class="meter"><span>Reserves</span><div class="track"><div id="unitMeter" class="fill"></div></div><b id="unitCount">0</b></div>
+            <div class="meter"><span>Throughput</span><div class="track"><div id="supplyMeter" class="fill"></div></div><b id="supplyCount">0</b></div>
+          </div>
+        </section>
+        <section class="section">
+          <h2>Field Notes</h2>
+          <div class="event-log" id="log"></div>
+        </section>
+        <section class="section">
+          <h2>Legend</h2>
+          <div class="legend">
+            <span class="key"><i class="swatch" style="background: var(--blue)"></i> Allied node</span>
+            <span class="key"><i class="swatch" style="background: var(--red)"></i> Enemy node</span>
+            <span class="key"><i class="swatch" style="background: rgba(187, 177, 144, 0.35)"></i> No route</span>
+            <span class="key"><i class="swatch" style="background: #f3b766"></i> Planned</span>
+            <span class="key"><i class="swatch" style="background: var(--road)"></i> Built road</span>
+            <span class="key"><i class="swatch" style="background: var(--rail)"></i> Built rail</span>
+            <span class="key"><i class="swatch" style="background: #7d544c"></i> Damaged</span>
+            <span class="key"><i class="swatch" style="background: #4b211d"></i> Full route</span>
+            <span class="key"><i class="swatch" style="background: #d3a238"></i> Full supply</span>
+            <span class="key"><i class="swatch" style="background: #6f4b46"></i> Overextended</span>
+            <span class="key"><i class="swatch" style="background: #481c18"></i> Supply warning</span>
+          </div>
+        </section>
+      </aside>
+    </main>
+
+    <script>
+      const canvas = document.querySelector("#game");
+      const ctx = canvas.getContext("2d");
+      const ui = {
+        turn: document.querySelector("#turn"),
+        score: document.querySelector("#score"),
+        supply: document.querySelector("#supply"),
+        threat: document.querySelector("#threat"),
+        road: document.querySelector("#roadBtn"),
+        rail: document.querySelector("#railBtn"),
+        unit: document.querySelector("#unitBtn"),
+        move: document.querySelector("#moveBtn"),
+        attack: document.querySelector("#attackBtn"),
+        end: document.querySelector("#endBtn"),
+        log: document.querySelector("#log"),
+        roadCount: document.querySelector("#roadCount"),
+        railCount: document.querySelector("#railCount"),
+        unitCount: document.querySelector("#unitCount"),
+        roadMeter: document.querySelector("#roadMeter"),
+        railMeter: document.querySelector("#railMeter"),
+        unitMeter: document.querySelector("#unitMeter"),
+        supplyCount: document.querySelector("#supplyCount"),
+        supplyMeter: document.querySelector("#supplyMeter"),
+        vpMeter: document.querySelector("#vpMeter"),
+        vpGoal: document.querySelector("#vpGoal"),
+        threatMeter: document.querySelector("#threatMeter"),
+        threatGoal: document.querySelector("#threatGoal"),
+        objectiveState: document.querySelector("#objectiveState"),
+        orderKicker: document.querySelector("#orderKicker"),
+        orderTitle: document.querySelector("#orderTitle"),
+        orderCopy: document.querySelector("#orderCopy"),
+        tooltip: document.querySelector("#tooltip"),
+        nodeHud: document.querySelector("#nodeHud"),
+        routeHud: document.querySelector("#routeHud"),
+      };
+
+      const goals = {
+        vp: 12,
+        threat: 18,
+        finalTurn: 10,
+        finalObjective: "falaise",
+        minViableUnits: 2,
+        reserveCap: 12,
+      };
+
+      const nodes = [
+        { id: "hq", name: "Utah Beach", x: 0.12, y: 0.62, side: "ally", type: "hq", supply: true, units: 4, value: 0, demand: 0, received: 0 },
+        { id: "carentan", name: "Carentan", x: 0.31, y: 0.55, side: "neutral", type: "town", supply: false, units: 0, value: 2, demand: 0, received: 0 },
+        { id: "bayeux", name: "Bayeux", x: 0.38, y: 0.72, side: "neutral", type: "town", supply: false, units: 0, value: 2, demand: 0, received: 0 },
+        { id: "stlo", name: "St Lo", x: 0.52, y: 0.47, side: "enemy", type: "town", supply: false, units: 2, value: 3, demand: 0, received: 0 },
+        { id: "caen", name: "Caen", x: 0.65, y: 0.7, side: "enemy", type: "city", supply: false, units: 3, value: 4, demand: 0, received: 0 },
+        { id: "vire", name: "Vire", x: 0.7, y: 0.37, side: "enemy", type: "town", supply: false, units: 2, value: 3, demand: 0, received: 0 },
+        { id: "falaise", name: "Falaise", x: 0.84, y: 0.57, side: "enemy", type: "city", supply: false, units: 4, value: 5, demand: 0, received: 0 },
+      ];
+
+      const edges = [
+        ["hq", "carentan"],
+        ["hq", "bayeux"],
+        ["carentan", "stlo"],
+        ["bayeux", "caen"],
+        ["stlo", "vire"],
+        ["stlo", "caen"],
+        ["vire", "falaise"],
+        ["caen", "falaise"],
+      ];
+
+      const state = {
+        mode: "inspect",
+        selected: null,
+        direction: "target",
+        hudNode: null,
+        turn: 1,
+        vp: 0,
+        road: 5,
+        rail: 2,
+        reserves: 5,
+        routes: [],
+        log: [],
+        pulse: 0,
+        hover: null,
+        hoverRoute: null,
+        hudRoute: null,
+        enemyEvents: [],
+        banner: null,
+        moveAmount: 1,
+        attackAmount: 1,
+        mouse: { x: 0, y: 0 },
+        outcome: null,
+      };
+
+      function byId(id) {
+        return nodes.find((node) => node.id === id);
+      }
+
+      function pos(node) {
+        return { x: node.x * canvas.clientWidth, y: node.y * canvas.clientHeight };
+      }
+
+      function routeKey(a, b) {
+        return [a, b].sort().join(":");
+      }
+
+      function connected(a, b) {
+        return edges.some(([x, y]) => routeKey(x, y) === routeKey(a, b));
+      }
+
+      function routeBetween(a, b) {
+        return state.routes.find((route) => routeKey(route.a, route.b) === routeKey(a, b));
+      }
+
+      function builtRoute(a, b) {
+        return state.routes.find((route) => route.status === "built" && routeKey(route.a, route.b) === routeKey(a, b));
+      }
+
+      function activeRoute(a, b) {
+        return state.routes.find((route) => (route.status === "built" || route.status === "damaged") && routeKey(route.a, route.b) === routeKey(a, b));
+      }
+
+      function routeCapacity(route) {
+        return route.kind === "rail" ? 4 : 2;
+      }
+
+      function moveCapacity(from, to) {
+        const route = builtRoute(from.id, to.id);
+        if (!route) return 0;
+        return Math.max(0, Math.min(from.units - 1, routeCapacity(route)));
+      }
+
+      function attackCapacity(from, to) {
+        if (!isLegalPair("attack", from, to)) return 0;
+        if (from.units < 1) return 0;
+        if (from.received < 1 && from.type !== "hq") return 0;
+        return Math.max(0, from.units);
+      }
+
+      function buildNeeded(kind) {
+        return kind === "rail" ? 2 : 1;
+      }
+
+      function routeLabel(route) {
+        if (!route) return "no route";
+        if (route.status === "damaged") return `repair ${route.progress}/${route.needed}`;
+        if (route.status !== "built") return `building ${route.progress}/${route.needed}`;
+        return `${route.used}/${routeCapacity(route)} load`;
+      }
+
+      function routeUpgradeAdvice(route) {
+        if (route.status === "damaged") return "Repair this route so supply can flow again.";
+        if (route.status !== "built") return "End turn to finish construction before it carries supply.";
+        if (route.used < routeCapacity(route)) return "This route still has spare capacity.";
+        if (route.kind === "road") return "This road is full. Upgrade it to rail so more supply reaches the front line.";
+        return "This rail is full. Build another path, reduce units on the line, or capture closer supply capacity.";
+      }
+
+      function nodeSupplyWarning(node) {
+        if (node.side !== "ally" || node.type === "hq" || node.demand <= 0 || node.supply) return null;
+        if (node.received <= 0) {
+          return {
+            title: "No supply",
+            action: "Build, repair, or complete a route back to Utah Beach.",
+          };
+        }
+        return {
+          title: "Supply short",
+          action: "Upgrade full roads to rail or reduce demand so supply reaches the front.",
+        };
+      }
+
+      function objectiveDemand(node) {
+        if (node.type === "city") return 2;
+        if (node.type === "town") return 1;
+        return 0;
+      }
+
+      function nodeDemand(node) {
+        if (node.type === "hq") return 0;
+        if (node.side === "ally") return node.units + objectiveDemand(node);
+        if (node.side === "neutral") return 1;
+        return 0;
+      }
+
+      function neighbors(id) {
+        return edges
+          .filter(([a, b]) => a === id || b === id)
+          .map(([a, b]) => (a === id ? b : a))
+          .map(byId);
+      }
+
+      function log(message) {
+        state.log.unshift(message);
+        state.log = state.log.slice(0, 8);
+      }
+
+      function setMode(mode) {
+        state.mode = mode;
+        state.selected = null;
+        state.direction = "source";
+        state.hover = null;
+        [ui.road, ui.rail, ui.unit, ui.move, ui.attack].forEach((button) => button.classList.remove("active"));
+        if (ui[mode]) ui[mode].classList.add("active");
+        hideNodeHud();
+        hideRouteHud();
+      }
+
+      function modeLabel(mode = state.mode) {
+        return { inspect: "Inspect", road: "Road", rail: "Rail", unit: "Unit", move: "Move", attack: "Attack" }[mode];
+      }
+
+      function isLegalTarget(from, to) {
+        return isLegalPair(state.mode, from, to);
+      }
+
+      function isLegalPair(action, from, to) {
+        if (!from || !to || from.id === to.id) return false;
+        if (action === "road") return from.side === "ally" && connected(from.id, to.id) && !routeBetween(from.id, to.id);
+        if (action === "rail") {
+          const existing = routeBetween(from.id, to.id);
+          return from.side === "ally" && connected(from.id, to.id) && (!existing || (existing.status === "built" && existing.kind === "road"));
+        }
+        if (action === "move") return from.side === "ally" && to.side !== "enemy" && moveCapacity(from, to) >= 1;
+        if (action === "attack") return from.side === "ally" && to.side === "enemy" && connected(from.id, to.id);
+        return false;
+      }
+
+      function legalTargets(fromId) {
+        const from = byId(fromId);
+        if (!from) return [];
+        return nodes.filter((node) => isLegalTarget(from, node));
+      }
+
+      function targetsFor(node, action) {
+        return nodes.filter((target) => isLegalPair(action, node, target));
+      }
+
+      function originsFor(target, action) {
+        return nodes.filter((origin) => isLegalPair(action, origin, target));
+      }
+
+      function actionOption(node, action) {
+        if (action === "unit") {
+          if (state.reserves < 1) return { action, label: "Deploy", enabled: false, reason: "No reserves available." };
+          if (node.side !== "ally") return { action, label: "Deploy", enabled: false, reason: "Requires an Allied node." };
+          if (!node.supply) return { action, label: "Deploy", enabled: false, reason: "Node must be fully supplied." };
+          return { action, label: "Deploy", enabled: true, reason: "Place one reserve here." };
+        }
+        if (action === "road") {
+          if (state.road < 1) return { action, label: "Road", enabled: false, reason: "No road crews left." };
+          const origins = originsFor(node, "road");
+          return { action, label: "Road here", enabled: origins.length > 0, reason: origins.length ? `Choose builder from ${origins.map((origin) => origin.name).join(", ")}.` : "Needs an adjacent Allied node and empty corridor." };
+        }
+        if (action === "rail") {
+          if (state.rail < 1) return { action, label: "Rail", enabled: false, reason: "No rail crews left." };
+          const origins = originsFor(node, "rail");
+          return { action, label: "Rail here", enabled: origins.length > 0, reason: origins.length ? `Choose builder from ${origins.map((origin) => origin.name).join(", ")}.` : "Needs adjacent Allied origin plus empty corridor or built road." };
+        }
+        if (action === "move") {
+          if (node.side === "enemy") return { action, label: "Move here", enabled: false, reason: "Enemy nodes require Attack." };
+          const origins = originsFor(node, "move");
+          return { action, label: "Move here", enabled: origins.length > 0, reason: origins.length ? `Choose units from ${origins.map((origin) => origin.name).join(", ")}.` : "Needs a built route from an Allied node with 2+ units." };
+        }
+        if (action === "attack") {
+          if (node.side !== "enemy") return { action, label: "Attack this", enabled: false, reason: "Only enemy nodes can be attacked." };
+          const origins = originsFor(node, "attack").filter((origin) => origin.units > 0 && (origin.received >= 1 || origin.type === "hq"));
+          return { action, label: "Attack this", enabled: origins.length > 0, reason: origins.length ? `Choose attacker from ${origins.map((origin) => origin.name).join(", ")}.` : "Move pieces into range and keep them supplied." };
+        }
+        return { action, label: action, enabled: false, reason: "Unavailable." };
+      }
+
+      function nodeMeta(node) {
+        const supply = node.type === "hq" ? "supply source" : `${node.received}/${node.demand} supply`;
+        return `${node.side} ${node.type} · ${node.units} unit${node.units === 1 ? "" : "s"} · ${supply}`;
+      }
+
+      function showNodeHud(node) {
+        state.hudNode = node.id;
+        const p = pos(node);
+        const x = Math.min(canvas.clientWidth - 270, Math.max(8, p.x + 18));
+        const y = Math.min(canvas.clientHeight - 160, Math.max(70, p.y));
+        ui.nodeHud.style.left = `${x}px`;
+        ui.nodeHud.style.top = `${y}px`;
+        const options = ["unit", "move", "attack"].map((action) => actionOption(node, action));
+        const moveOption = options.find((option) => option.action === "move");
+        const attackOption = options.find((option) => option.action === "attack");
+        const moveMax = Math.max(1, ...originsFor(node, "move").map((origin) => moveCapacity(origin, node)));
+        const attackMax = Math.max(1, ...originsFor(node, "attack").map((origin) => attackCapacity(origin, node)));
+        state.moveAmount = Math.min(Math.max(1, state.moveAmount), moveMax);
+        state.attackAmount = Math.min(Math.max(1, state.attackAmount), attackMax);
+        ui.nodeHud.innerHTML = `
+          <div class="hud-head">
+            <div>
+              <div class="hud-title">${node.name}</div>
+              <div class="hud-meta">${nodeMeta(node)}</div>
+            </div>
+            <button class="hud-close" data-close="true" title="Close">x</button>
+          </div>
+          <div class="hud-actions">
+            ${options
+              .map(
+                (option) => `
+                  <div class="hud-action">
+                    <button data-action="${option.action}" ${option.enabled ? "" : "disabled"}>${option.label}</button>
+                    <div class="hud-reason">${option.reason}</div>
+                  </div>
+                `,
+              )
+              .join("")}
+            ${
+              moveOption?.enabled
+                ? `<div class="move-amount">
+                    <button data-move-step="-1" ${state.moveAmount <= 1 ? "disabled" : ""}>-</button>
+                    <span>Move ${state.moveAmount} / ${moveMax}</span>
+                    <button data-move-step="1" ${state.moveAmount >= moveMax ? "disabled" : ""}>+</button>
+                  </div>`
+                : ""
+            }
+            ${
+              attackOption?.enabled
+                ? `<div class="move-amount">
+                    <button data-attack-step="-1" ${state.attackAmount <= 1 ? "disabled" : ""}>-</button>
+                    <span>Attack with ${state.attackAmount} / ${attackMax}</span>
+                    <button data-attack-step="1" ${state.attackAmount >= attackMax ? "disabled" : ""}>+</button>
+                  </div>`
+                : ""
+            }
+          </div>
+        `;
+        ui.nodeHud.hidden = false;
+      }
+
+      function hideNodeHud() {
+        state.hudNode = null;
+        ui.nodeHud.hidden = true;
+      }
+
+      function routeHudTitle(route) {
+        if (!route?.route) return "Corridor";
+        route = route.route;
+        const kind = route.kind === "rail" ? "Rail" : "Road";
+        const status = route.status === "built" ? "Built" : route.status === "damaged" ? "Damaged" : "Planned";
+        return `${status} ${kind}`;
+      }
+
+      function canBuildOnCorridor(corridor, kind) {
+        const existing = corridor.route;
+        const hasAlliedEnd = byId(corridor.a).side === "ally" || byId(corridor.b).side === "ally";
+        if (!hasAlliedEnd) return false;
+        if (kind === "road") return state.road > 0 && !existing;
+        if (kind === "rail") return state.rail > 0 && (!existing || (existing.status === "built" && existing.kind === "road"));
+        return false;
+      }
+
+      function routeActionReason(corridor, kind) {
+        const existing = corridor.route;
+        const hasAlliedEnd = byId(corridor.a).side === "ally" || byId(corridor.b).side === "ally";
+        if (!hasAlliedEnd) return "Needs one Allied endpoint.";
+        if (kind === "road") {
+          if (state.road < 1) return "No road crews left.";
+          if (existing) return "Corridor already has a route.";
+          return "Plan road construction on this corridor.";
+        }
+        if (state.rail < 1) return "No rail crews left.";
+        if (existing?.status === "planned") return "Finish current construction first.";
+        if (existing?.status === "damaged") return "Repair this route before upgrading.";
+        if (existing?.kind === "rail") return "Already rail.";
+        return existing ? "Upgrade this road to rail." : "Plan rail construction on this corridor.";
+      }
+
+      function showRouteHud(corridor) {
+        state.hudRoute = routeKey(corridor.a, corridor.b);
+        const route = corridor.route;
+        const pa = pos(byId(corridor.a));
+        const pb = pos(byId(corridor.b));
+        const mx = (pa.x + pb.x) / 2;
+        const my = (pa.y + pb.y) / 2;
+        ui.routeHud.style.left = `${Math.min(canvas.clientWidth - 270, Math.max(8, mx + 18))}px`;
+        ui.routeHud.style.top = `${Math.min(canvas.clientHeight - 160, Math.max(70, my))}px`;
+        const canRepair = route?.status === "damaged" && state.road > 0;
+        const repairReason =
+          route?.status !== "damaged"
+            ? "Only damaged routes need repair."
+            : state.road < 1
+              ? "Need one road crew to repair now. It will still auto-repair at end turn."
+              : "Spend one road crew to repair immediately.";
+        ui.routeHud.innerHTML = `
+          <div class="hud-head">
+            <div>
+              <div class="hud-title">${routeHudTitle(corridor)}</div>
+              <div class="hud-meta">${byId(corridor.a).name} to ${byId(corridor.b).name} · ${routeLabel(route)}</div>
+            </div>
+            <button class="hud-close" data-close="true" title="Close">x</button>
+          </div>
+          <div class="hud-actions">
+            <div class="hud-action">
+              <button data-route-action="road" ${canBuildOnCorridor(corridor, "road") ? "" : "disabled"}>Road</button>
+              <div class="hud-reason">${routeActionReason(corridor, "road")}</div>
+            </div>
+            <div class="hud-action">
+              <button data-route-action="rail" ${canBuildOnCorridor(corridor, "rail") ? "" : "disabled"}>Rail</button>
+              <div class="hud-reason">${routeActionReason(corridor, "rail")}</div>
+            </div>
+            <div class="hud-action">
+              <button data-route-action="repair" ${canRepair ? "" : "disabled"}>Repair</button>
+              <div class="hud-reason">${repairReason}</div>
+            </div>
+          </div>
+        `;
+        ui.routeHud.hidden = false;
+      }
+
+      function hideRouteHud() {
+        state.hudRoute = null;
+        ui.routeHud.hidden = true;
+      }
+
+      function routeFromHud() {
+        if (!state.hudRoute) return null;
+        return state.routes.find((route) => routeKey(route.a, route.b) === state.hudRoute);
+      }
+
+      function corridorFromHud() {
+        if (!state.hudRoute) return null;
+        const [a, b] = state.hudRoute.split(":");
+        return { a, b, route: routeBetween(a, b) };
+      }
+
+      function repairRoute(route) {
+        if (!route || route.status !== "damaged") return;
+        if (state.road < 1) {
+          log("Need one road crew to repair immediately.");
+          return;
+        }
+        state.road -= 1;
+        route.status = "built";
+        route.progress = route.needed;
+        updateSupply();
+        log(`${route.kind === "rail" ? "Rail" : "Road"} repaired between <strong>${byId(route.a).name}</strong> and <strong>${byId(route.b).name}</strong>.`);
+        hideRouteHud();
+        draw();
+      }
+
+      function startHudAction(action) {
+        const node = byId(state.hudNode);
+        if (!node) return;
+        const option = actionOption(node, action);
+        if (!option.enabled) return;
+        if (action === "unit") {
+          deployUnit(node);
+          hideNodeHud();
+          draw();
+          return;
+        }
+        state.mode = action;
+        state.selected = node.id;
+        state.direction = "target";
+        if (action === "move") {
+          const origins = originsFor(node, "move");
+          const max = Math.max(1, ...origins.map((origin) => moveCapacity(origin, node)));
+          state.moveAmount = Math.min(Math.max(1, state.moveAmount), max);
+          if (origins.length === 1) {
+            moveUnit(origins[0], node, state.moveAmount);
+            state.mode = "inspect";
+            state.selected = null;
+            hideNodeHud();
+            draw();
+            return;
+          }
+        }
+        if (action === "attack") {
+          const origins = originsFor(node, "attack").filter((origin) => attackCapacity(origin, node) > 0);
+          const max = Math.max(1, ...origins.map((origin) => attackCapacity(origin, node)));
+          state.attackAmount = Math.min(Math.max(1, state.attackAmount), max);
+          if (origins.length === 1) {
+            attackNode(origins[0], node, state.attackAmount);
+            state.mode = "inspect";
+            state.selected = null;
+            hideNodeHud();
+            draw();
+            return;
+          }
+        }
+        [ui.road, ui.rail, ui.unit, ui.move, ui.attack].forEach((button) => button.classList.remove("active"));
+        if (ui[action]) ui[action].classList.add("active");
+        hideNodeHud();
+        draw();
+      }
+
+      function currentOrder() {
+        if (state.outcome) {
+          return {
+            kicker: state.outcome === "win" ? "Operation complete" : "Operation failed",
+            title: state.outcome === "win" ? "Breakout achieved" : "Beachhead collapsed",
+            copy: state.outcome === "win" ? "You met the objective. Refresh to try a cleaner victory." : "Refresh to restart and try a tighter supply plan.",
+          };
+        }
+        if (state.mode === "unit") {
+          return {
+            kicker: "Unit order",
+            title: "Deploy reserve",
+            copy: "Click a fully supplied Allied node. Each unit increases that node's supply demand.",
+          };
+        }
+        if (state.mode === "inspect") {
+          return {
+            kicker: "Inspect",
+            title: "Choose a node",
+            copy: "Click a city or HQ to see actions, requirements, and disabled reasons.",
+          };
+        }
+        if (!state.selected) {
+          const verb = state.mode === "attack" ? "Select attacker" : state.mode === "move" ? "Select unit stack" : "Select origin";
+          return {
+            kicker: `${modeLabel()} order`,
+            title: verb,
+            copy:
+              state.mode === "attack"
+                ? "Click an Allied node with units, then click an adjacent enemy node."
+                : state.mode === "move"
+                  ? "Click an Allied node with 2+ units, then click an adjacent Allied or neutral node connected by a built route."
+                  : `Click a node to plan a ${state.mode}. Planned roads finish next turn; rails take 2 construction steps.`,
+          };
+        }
+        const selected = byId(state.selected);
+        const options = state.direction === "target" ? originsFor(selected, state.mode) : legalTargets(state.selected);
+        const names = options.map((node) => node.name).join(", ") || "No legal options";
+        return {
+          kicker: `${modeLabel()} order`,
+          title: state.direction === "target" ? `${selected.name} requested` : `${selected.name} selected`,
+          copy:
+            state.mode === "attack"
+              ? state.direction === "target"
+                ? `Choose attacker from: ${names}.`
+                : `Choose enemy target: ${names}.`
+              : state.mode === "move"
+                ? state.direction === "target"
+                  ? `Choose source for ${state.moveAmount} unit${state.moveAmount === 1 ? "" : "s"}: ${names}.`
+                  : `Move ${state.moveAmount} unit${state.moveAmount === 1 ? "" : "s"} to: ${names}. Enemy nodes require Attack instead.`
+                : state.direction === "target"
+                  ? `Choose Allied origin to build toward ${selected.name}: ${names}.`
+                  : `Choose destination to place construction: ${names}. Click empty map or press Escape to cancel.`,
+        };
+      }
+
+      function resize() {
+        const rect = canvas.parentElement.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = Math.floor(rect.width * dpr);
+        canvas.height = Math.floor(rect.height * dpr);
+        canvas.style.width = `${rect.width}px`;
+        canvas.style.height = `${rect.height}px`;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        draw();
+      }
+
+      function updateSupply() {
+        state.routes.forEach((route) => {
+          route.used = 0;
+        });
+        nodes.forEach((node) => {
+          node.demand = nodeDemand(node);
+          node.received = 0;
+          node.supply = node.type === "hq";
+        });
+
+        const candidates = nodes
+          .filter((node) => node.id !== "hq" && node.demand > 0 && node.side !== "enemy")
+          .map((node) => ({ node, path: pathTo(node.id) }))
+          .filter((item) => item.path)
+          .sort((a, b) => {
+            if (a.node.side !== b.node.side) return a.node.side === "ally" ? -1 : 1;
+            return a.path.length - b.path.length;
+          });
+
+        for (const { node, path } of candidates) {
+          const residual = Math.min(...path.map((route) => routeCapacity(route) - route.used));
+          const delivered = Math.max(0, Math.min(node.demand, residual));
+          if (delivered <= 0) continue;
+          path.forEach((route) => (route.used += delivered));
+          node.received = delivered;
+          node.supply = delivered >= node.demand;
+        }
+      }
+
+      function pathTo(targetId) {
+        const queue = [{ id: "hq", path: [] }];
+        const visited = new Set(["hq"]);
+        while (queue.length) {
+          const current = queue.shift();
+          if (current.id === targetId) return current.path;
+          for (const next of neighbors(current.id)) {
+            if (visited.has(next.id)) continue;
+            const route = builtRoute(current.id, next.id);
+            if (!route) continue;
+            visited.add(next.id);
+            queue.push({ id: next.id, path: [...current.path, route] });
+          }
+        }
+        return null;
+      }
+
+      function captureSuppliedNeutrals() {
+        nodes.forEach((node) => {
+          if (node.side === "neutral" && node.supply) {
+            node.side = "ally";
+            node.units = Math.max(1, node.units);
+            gainReserves(1, `${node.name} secured`);
+            state.vp += node.value;
+            log(`<strong>${node.name}</strong> joins the network on a spare supply lane. +${node.value} VP, +1 reserve.`);
+          }
+        });
+        updateSupply();
+      }
+
+      function gainReserves(amount, source) {
+        const before = state.reserves;
+        state.reserves = Math.min(goals.reserveCap, state.reserves + amount);
+        return { before, after: state.reserves, gained: state.reserves - before, source };
+      }
+
+      function buildRoute(a, b, kind) {
+        if (!connected(a, b)) return log("Routes can only be built along printed corridors.");
+        const existing = routeBetween(a, b);
+        if (existing && kind === "rail" && existing.status === "built" && existing.kind === "road") {
+          if (state.rail < 1) return log("No rail crews left this turn.");
+          state.rail -= 1;
+          existing.kind = "rail";
+          existing.status = "planned";
+          existing.progress = 0;
+          existing.needed = buildNeeded("rail");
+          updateSupply();
+          log(`Rail upgrade planned between <strong>${byId(a).name}</strong> and <strong>${byId(b).name}</strong>. It needs ${existing.needed} construction steps.`);
+          checkObjective();
+          return;
+        }
+        if (existing) return log("That corridor already has construction or a built route.");
+        if (kind === "road" && state.road < 1) return log("No road crews left this turn.");
+        if (kind === "rail" && state.rail < 1) return log("No rail crews left this turn.");
+        state[kind] -= 1;
+        const needed = buildNeeded(kind);
+        state.routes.push({ a, b, kind, status: "planned", progress: 0, needed, used: 0 });
+        updateSupply();
+        log(`${kind === "rail" ? "Rail" : "Road"} planned between <strong>${byId(a).name}</strong> and <strong>${byId(b).name}</strong>. It needs ${needed} construction step${needed > 1 ? "s" : ""}.`);
+        checkObjective();
+      }
+
+      function advanceConstruction() {
+        const planned = state.routes.filter((route) => route.status === "planned" || route.status === "damaged");
+        for (const route of planned) {
+          const repairing = route.status === "damaged";
+          route.progress += 1;
+          if (route.progress >= route.needed) {
+            route.status = "built";
+            route.progress = route.needed;
+            log(`${route.kind === "rail" ? "Rail" : "Road"} ${repairing ? "repaired" : "completed"} between <strong>${byId(route.a).name}</strong> and <strong>${byId(route.b).name}</strong>.`);
+          } else {
+            log(`${route.kind === "rail" ? "Rail" : "Road"} ${repairing ? "repair" : "construction"} advances near <strong>${byId(route.b).name}</strong> (${route.progress}/${route.needed}).`);
+          }
+        }
+        updateSupply();
+        captureSuppliedNeutrals();
+      }
+
+      function deployUnit(node) {
+        if (state.reserves < 1) return log("No reserves available.");
+        if (!node.supply || node.side !== "ally") return log("Units must deploy to fully supplied Allied nodes.");
+        state.reserves -= 1;
+        node.units += 1;
+        updateSupply();
+        log(`Reserve deployed to <strong>${node.name}</strong>. Demand rises to ${node.demand}.`);
+      }
+
+      function moveUnit(from, to, amount = state.moveAmount) {
+        if (from.side !== "ally") return log("Move must start from an Allied node.");
+        if (from.units < 2) return log("Leave at least one unit behind when moving.");
+        if (!builtRoute(from.id, to.id)) return log("Movement requires a built, undamaged road or rail.");
+        if (to.side === "enemy") return log(`<strong>${to.name}</strong> is enemy-held. Use Attack to enter it.`);
+        const capacity = moveCapacity(from, to);
+        const moved = Math.max(1, Math.min(amount, capacity));
+        from.units -= moved;
+        to.units += moved;
+        if (to.side === "neutral") {
+          to.side = "ally";
+          const reserve = gainReserves(1, `${to.name} secured`);
+          state.vp += to.value;
+          log(`${moved} unit${moved === 1 ? "" : "s"} move into <strong>${to.name}</strong> and secure it. +${to.value} VP, +${reserve.gained} reserve.`);
+        } else {
+          log(`${moved} unit${moved === 1 ? "" : "s"} move from <strong>${from.name}</strong> to <strong>${to.name}</strong>.`);
+        }
+        updateSupply();
+        checkObjective();
+      }
+
+      function alliedUnits() {
+        return nodes.filter((node) => node.side === "ally").reduce((sum, node) => sum + node.units, 0);
+      }
+
+      function reinforce() {
+        const base = 2;
+        const securedTowns = nodes.filter((node) => node.side === "ally" && node.type !== "hq").length;
+        const bonus = securedTowns;
+        const amount = base + bonus;
+        const reserve = gainReserves(amount, "reinforcements");
+        const capText = reserve.gained < amount ? ` (${reserve.after}/${goals.reserveCap} cap)` : "";
+        log(`Reinforcements arrive at Utah Beach: +${reserve.gained} reserves${bonus ? ` (+${bonus} from secured towns)` : ""}${capText}.`);
+      }
+
+      function musterTownUnits() {
+        const mustering = nodes.filter((node) => node.side === "ally" && node.type !== "hq" && node.supply && node.units < 3);
+        for (const node of mustering) {
+          node.units += 1;
+          log(`<strong>${node.name}</strong> musters +1 local unit.`);
+        }
+        updateSupply();
+      }
+
+      function attackNode(from, target, amount = state.attackAmount) {
+        if (!from || !target) return;
+        if (from.side !== "ally" || target.side !== "enemy") return log("Select an Allied node, then adjacent enemy node.");
+        if (!connected(from.id, target.id)) return log("Attack target must be adjacent.");
+        if (from.received < 1 && from.type !== "hq") return log("Units with no supply cannot attack.");
+        if (from.units < 1) return log("No units available to attack.");
+        const committed = Math.max(1, Math.min(amount, from.units));
+        const supplyRatio = from.demand === 0 ? 1 : from.received / from.demand;
+        const overextended = supplyRatio < 1;
+        const dice = Math.max(
+          1,
+          Math.min(4, committed + (builtRoute(from.id, target.id)?.kind === "rail" ? 1 : 0) - (overextended ? 1 : 0)),
+        );
+        let hits = 0;
+        let retreats = 0;
+        for (let i = 0; i < dice; i += 1) {
+          const roll = Math.ceil(Math.random() * 6);
+          if (roll >= 5) hits += 1;
+          if (roll === 4) retreats += 1;
+        }
+        target.units = Math.max(0, target.units - hits);
+        from.units -= committed;
+        const loss = Math.random() < 0.22 ? 1 : 0;
+        const survivors = Math.max(0, committed - loss);
+        if (target.units === 0) {
+          target.side = "ally";
+          target.units = Math.max(1, survivors);
+          const reserve = gainReserves(1, `${target.name} captured`);
+          state.vp += target.value;
+          updateSupply();
+          log(`<strong>${target.name}</strong> captured by ${committed} unit${committed === 1 ? "" : "s"} with ${dice} dice. +${target.value} VP, +${reserve.gained} reserve.`);
+        } else {
+          from.units += survivors;
+          log(`${committed} unit${committed === 1 ? "" : "s"} attack <strong>${target.name}</strong>: ${hits} hits, ${retreats} retreats${loss ? ", 1 loss" : ""}${overextended ? " while overextended" : ""}.`);
+        }
+        updateSupply();
+        checkObjective();
+      }
+
+      function enemyTurn() {
+        state.enemyEvents = [];
+        state.banner = { text: "Enemy turn", until: Date.now() + 2400 };
+        const front = nodes.filter((node) => node.side === "enemy");
+        const suppliedAllies = nodes.filter((node) => node.side === "ally" && node.supply && node.type !== "hq");
+        for (const enemy of front) {
+          const adjacentAllies = neighbors(enemy.id)
+            .filter((node) => node.side === "ally")
+            .sort((a, b) => (a.supply === b.supply ? 0 : a.supply ? 1 : -1));
+          const target = adjacentAllies[0];
+          if (!target) continue;
+          const pressure = enemy.units + state.turn + (target.supply ? 0 : 2);
+          if (pressure > 3 && Math.random() < (target.supply ? 0.5 : 0.75)) {
+            target.units = Math.max(0, target.units - 1);
+            if (target.units === 0 && target.type !== "hq") {
+              target.side = "neutral";
+              target.supply = false;
+              state.vp = Math.max(0, state.vp - target.value);
+              log(`<strong>${target.name}</strong> is overrun. -${target.value} VP.`);
+            } else {
+              log(`Enemy pressure reduces <strong>${target.name}</strong>.`);
+            }
+            state.enemyEvents.push({
+              type: "pressure",
+              from: enemy.id,
+              to: target.id,
+              label: target.units === 0 && target.type !== "hq" ? `${target.name} overrun` : `${enemy.name} attacks ${target.name}`,
+              detail: "Enemy pressure",
+              until: Date.now() + 3600,
+            });
+          }
+        }
+        const loadedRoutes = state.routes.filter((route) => route.status === "built" && route.used > 0);
+        if (suppliedAllies.length > 0 && loadedRoutes.length > 0 && Math.random() < 0.35) {
+          const route = loadedRoutes.sort((a, b) => b.used / routeCapacity(b) - a.used / routeCapacity(a))[0];
+          const target = byId(route.a === "hq" ? route.b : route.a);
+          if (route) {
+            route.status = "damaged";
+            route.progress = 0;
+            route.needed = 1;
+            route.used = 0;
+            log(`Air raid damages the ${route.kind} near <strong>${target.name}</strong>. It stays on the map and needs 1 repair step.`);
+            state.enemyEvents.push({
+              type: "raid",
+              route: routeKey(route.a, route.b),
+              label: `${route.kind === "rail" ? "Rail" : "Road"} damaged`,
+              detail: `Air raid near ${target.name}`,
+              until: Date.now() + 4200,
+            });
+          }
+        }
+        updateSupply();
+      }
+
+      function endTurn() {
+        if (state.outcome) return;
+        advanceConstruction();
+        enemyTurn();
+        state.turn += 1;
+        state.road = Math.min(6, state.road + 3);
+        state.rail = Math.min(3, state.rail + 1);
+        reinforce();
+        musterTownUnits();
+        updateSupply();
+        checkObjective();
+        draw();
+      }
+
+      function threatTotal() {
+        return nodes.filter((node) => node.side === "enemy").reduce((sum, node) => sum + node.units, 0);
+      }
+
+      function checkObjective() {
+        if (state.outcome) return;
+        const falaise = byId(goals.finalObjective);
+        const hq = byId("hq");
+        if (falaise.side === "ally" || state.vp >= goals.vp) {
+          state.outcome = "win";
+          log("<strong>Victory.</strong> The breakout objective is secure.");
+          return;
+        }
+        if (threatTotal() >= goals.threat || hq.side !== "ally" || state.turn > goals.finalTurn) {
+          state.outcome = "loss";
+          log("<strong>Defeat.</strong> The breakout window closes.");
+          return;
+        }
+        if (alliedUnits() + state.reserves < goals.minViableUnits) {
+          state.outcome = "loss";
+          log("<strong>Defeat.</strong> Allied combat strength has collapsed.");
+        }
+      }
+
+      function nodeAt(clientX, clientY) {
+        const rect = canvas.getBoundingClientRect();
+        const x = clientX - rect.left;
+        const y = clientY - rect.top;
+        return nodes.find((node) => {
+          const p = pos(node);
+          return Math.hypot(p.x - x, p.y - y) < 30;
+        });
+      }
+
+      function routeAt(clientX, clientY) {
+        const rect = canvas.getBoundingClientRect();
+        const x = clientX - rect.left;
+        const y = clientY - rect.top;
+        let best = null;
+        for (const [a, b] of edges) {
+          const pa = pos(byId(a));
+          const pb = pos(byId(b));
+          const dx = pb.x - pa.x;
+          const dy = pb.y - pa.y;
+          const len2 = dx * dx + dy * dy;
+          const t = Math.max(0, Math.min(1, ((x - pa.x) * dx + (y - pa.y) * dy) / len2));
+          const px = pa.x + t * dx;
+          const py = pa.y + t * dy;
+          const distance = Math.hypot(x - px, y - py);
+          if (distance <= 18 && (!best || distance < best.distance)) {
+            best = { a, b, route: routeBetween(a, b), distance };
+          }
+        }
+        return best;
+      }
+
+      function tooltipForNode(node) {
+        const warning = nodeSupplyWarning(node);
+        const supplyText =
+          node.type === "hq"
+            ? "Primary supply source. If this falls, the operation fails."
+            : node.side === "enemy"
+              ? "Enemy-held objective. You cannot Move into it; use Attack from an adjacent Allied node."
+              : `${node.received}/${node.demand} supply received. Fully supplied nodes can deploy units and attack at full strength.`;
+        const valueText = node.value ? `${node.value} VP objective.` : "Beachhead HQ.";
+        const warningText = warning ? `<br><br><strong>${warning.title}</strong>${warning.action} Consequences: no local mustering, no deployment, and weaker/blocked attacks.` : "";
+        return `<strong>${node.name}</strong>${node.side.toUpperCase()} ${node.type}. ${valueText}<br>${supplyText}${warningText}`;
+      }
+
+      function tooltipForRoute(route) {
+        if (!route.route && route.a) {
+          return `<strong>Open corridor</strong>${byId(route.a).name} to ${byId(route.b).name}. Click to plan a road or rail here. Needs one Allied endpoint and an available crew.`;
+        }
+        route = route.route || route;
+        const from = byId(route.a).name;
+        const to = byId(route.b).name;
+        if (route.status === "planned") {
+          return `<strong>${route.kind === "rail" ? "Planned rail" : "Planned road"}</strong>${from} to ${to}. Building ${route.progress}/${route.needed}. It does not carry supply until completed at end turn.`;
+        }
+        if (route.status === "damaged") {
+          return `<strong>Damaged ${route.kind}</strong>${from} to ${to}. Repair ${route.progress}/${route.needed}. It remains visible but carries no supply until repaired.`;
+        }
+        const full = route.used >= routeCapacity(route);
+        const consequence = full
+          ? " Consequences: captured towns beyond this route may be under-supplied, cannot muster new local units, and may lose attack/deploy options."
+          : "";
+        return `<strong>${route.kind === "rail" ? "Built rail" : "Built road"}</strong>${from} to ${to}. ${route.used}/${routeCapacity(route)} load means supply currently used / total capacity. ${full ? "This route is full." : "It can carry more supply."}<br><br><strong>Action</strong>${routeUpgradeAdvice(route)}${consequence}`;
+      }
+
+      function updateTooltip() {
+        const node = state.hover ? byId(state.hover) : null;
+        const route = state.hoverRoute;
+        if (!node && !route) {
+          ui.tooltip.hidden = true;
+          return;
+        }
+        ui.tooltip.hidden = false;
+        ui.tooltip.style.left = `${state.mouse.x}px`;
+        ui.tooltip.style.top = `${state.mouse.y}px`;
+        ui.tooltip.innerHTML = node ? tooltipForNode(node) : tooltipForRoute(route);
+      }
+
+      function handleClick(event) {
+        if (state.outcome) return;
+        const node = nodeAt(event.clientX, event.clientY);
+        const route = node ? null : routeAt(event.clientX, event.clientY);
+        if (!node) {
+          if (route && state.mode === "inspect") {
+            state.selected = null;
+            hideNodeHud();
+            showRouteHud(route);
+            draw();
+            return;
+          }
+          state.selected = null;
+          hideNodeHud();
+          hideRouteHud();
+          draw();
+          return;
+        }
+        if (state.mode === "inspect") {
+          state.selected = null;
+          hideRouteHud();
+          showNodeHud(node);
+          draw();
+          return;
+        }
+        if (state.mode === "unit") {
+          deployUnit(node);
+          state.mode = "inspect";
+          [ui.road, ui.rail, ui.unit, ui.move, ui.attack].forEach((button) => button.classList.remove("active"));
+          draw();
+          return;
+        }
+        if (!state.selected) {
+          state.selected = node.id;
+          const targets = legalTargets(node.id);
+          if ((state.mode === "road" || state.mode === "rail" || state.mode === "move" || state.mode === "attack") && targets.length === 0) {
+            log(`<strong>${node.name}</strong> has no legal ${state.mode} targets.`);
+          }
+          draw();
+          return;
+        }
+        const selected = byId(state.selected);
+        const from = state.direction === "target" ? node : selected;
+        const to = state.direction === "target" ? selected : node;
+        if (!isLegalPair(state.mode, from, to)) {
+          if (state.mode === "move" && to.side === "enemy") {
+            log(`<strong>${node.name}</strong> is enemy-held. Switch to Attack to enter it.`);
+            draw();
+            return;
+          }
+          const targetWord = state.direction === "target" ? "origin" : "destination";
+          log(`<strong>${node.name}</strong> is not a legal ${state.mode} ${targetWord} for <strong>${selected.name}</strong>.`);
+          draw();
+          return;
+        }
+        if (state.mode === "road" || state.mode === "rail") buildRoute(from.id, to.id, state.mode);
+        if (state.mode === "move") moveUnit(from, to, state.moveAmount);
+        if (state.mode === "attack") attackNode(from, to, state.attackAmount);
+        state.selected = null;
+        state.mode = "inspect";
+        state.direction = "target";
+        [ui.road, ui.rail, ui.unit, ui.move, ui.attack].forEach((button) => button.classList.remove("active"));
+        draw();
+      }
+
+      function handleMove(event) {
+        const node = nodeAt(event.clientX, event.clientY);
+        const route = node ? null : routeAt(event.clientX, event.clientY);
+        const nextHover = node?.id || null;
+        const nextRoute = route ? routeKey(route.a, route.b) : null;
+        state.mouse = { x: event.clientX - canvas.getBoundingClientRect().left, y: event.clientY - canvas.getBoundingClientRect().top };
+        if (state.hover === nextHover && state.hoverRoute && nextRoute === routeKey(state.hoverRoute.a, state.hoverRoute.b)) {
+          updateTooltip();
+          return;
+        }
+        state.hover = nextHover;
+        state.hoverRoute = route || null;
+        updateTooltip();
+        draw();
+      }
+
+      function cancelOrder() {
+        if (!state.selected) return;
+        const from = byId(state.selected);
+        log(`${modeLabel()} order from <strong>${from.name}</strong> canceled.`);
+        state.selected = null;
+        state.mode = "inspect";
+        state.direction = "target";
+        state.hover = null;
+        state.hoverRoute = null;
+        hideRouteHud();
+        [ui.road, ui.rail, ui.unit, ui.move, ui.attack].forEach((button) => button.classList.remove("active"));
+        draw();
+      }
+
+      function drawTerrain(width, height) {
+        ctx.fillStyle = "#171a14";
+        ctx.fillRect(0, 0, width, height);
+        ctx.strokeStyle = "rgba(190, 180, 143, 0.08)";
+        ctx.lineWidth = 1;
+        const size = Math.max(36, Math.min(width, height) / 13);
+        for (let y = -size; y < height + size; y += size * 0.86) {
+          for (let x = -size; x < width + size; x += size * 1.5) {
+            const offset = Math.round(y / (size * 0.86)) % 2 ? size * 0.75 : 0;
+            hex(x + offset, y, size * 0.48, false);
+          }
+        }
+        ctx.fillStyle = "rgba(93, 122, 133, 0.18)";
+        ctx.beginPath();
+        ctx.moveTo(0, height * 0.78);
+        ctx.bezierCurveTo(width * 0.2, height * 0.65, width * 0.25, height * 0.92, width * 0.48, height * 0.76);
+        ctx.bezierCurveTo(width * 0.7, height * 0.6, width * 0.83, height * 0.85, width, height * 0.72);
+        ctx.lineTo(width, height);
+        ctx.lineTo(0, height);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      function hex(x, y, r, fill = true) {
+        ctx.beginPath();
+        for (let i = 0; i < 6; i += 1) {
+          const angle = Math.PI / 3 * i + Math.PI / 6;
+          const px = x + Math.cos(angle) * r;
+          const py = y + Math.sin(angle) * r;
+          if (i === 0) ctx.moveTo(px, py);
+          else ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+        fill ? ctx.fill() : ctx.stroke();
+      }
+
+      function drawRoutes() {
+        for (const [a, b] of edges) {
+          const pa = pos(byId(a));
+          const pb = pos(byId(b));
+          ctx.strokeStyle = "rgba(187, 177, 144, 0.22)";
+          ctx.lineWidth = 3;
+          ctx.setLineDash([8, 10]);
+          ctx.beginPath();
+          ctx.moveTo(pa.x, pa.y);
+          ctx.lineTo(pb.x, pb.y);
+          ctx.stroke();
+        }
+        ctx.setLineDash([]);
+        for (const route of state.routes) {
+          const pa = pos(byId(route.a));
+          const pb = pos(byId(route.b));
+          const capacity = routeCapacity(route);
+          const load = route.used / capacity;
+          const planned = route.status !== "built";
+          const damaged = route.status === "damaged";
+          ctx.strokeStyle = damaged ? "#7d544c" : planned ? "#f3b766" : route.kind === "rail" ? "#d9d1b8" : "#d78f46";
+          ctx.lineWidth = planned ? 7 : route.kind === "rail" ? 8 : 6;
+          ctx.lineCap = "round";
+          ctx.setLineDash(planned ? [12, 8] : []);
+          ctx.beginPath();
+          ctx.moveTo(pa.x, pa.y);
+          ctx.lineTo(pb.x, pb.y);
+          ctx.stroke();
+          ctx.setLineDash([]);
+          if (!planned && load >= 1) {
+            ctx.strokeStyle = "rgba(213, 64, 52, 0.68)";
+            ctx.lineWidth = route.kind === "rail" ? 12 : 10;
+            ctx.beginPath();
+            ctx.moveTo(pa.x, pa.y);
+            ctx.lineTo(pb.x, pb.y);
+            ctx.stroke();
+          }
+          if (!planned && route.kind === "rail") {
+            ctx.strokeStyle = "#3c3930";
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 8]);
+            ctx.stroke();
+            ctx.setLineDash([]);
+          }
+          const mx = (pa.x + pb.x) / 2;
+          const my = (pa.y + pb.y) / 2;
+          const badgeWidth = 64;
+          const badgeHeight = 30;
+          ctx.fillStyle = damaged ? "#2f1f1d" : planned ? "#3b2b16" : load >= 1 ? "#4b211d" : "rgba(17, 20, 15, 0.82)";
+          ctx.strokeStyle = "rgba(242, 238, 223, 0.34)";
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.roundRect(mx - badgeWidth / 2, my - badgeHeight / 2, badgeWidth, badgeHeight, 5);
+          ctx.fill();
+          ctx.stroke();
+          ctx.fillStyle = "#f2eedf";
+          ctx.font = "800 10px Inter, system-ui, sans-serif";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(routeLabel(route), mx, my - 6);
+          const tickSize = 6;
+          const gap = 3;
+          const ticks = planned ? route.needed : capacity;
+          const filled = planned ? route.progress : route.used;
+          const totalWidth = ticks * tickSize + (ticks - 1) * gap;
+          const startX = mx - totalWidth / 2;
+          for (let i = 0; i < ticks; i += 1) {
+            ctx.fillStyle = i < filled ? "#d3a238" : "rgba(242, 238, 223, 0.22)";
+            ctx.fillRect(startX + i * (tickSize + gap), my + 5, tickSize, tickSize);
+          }
+        }
+      }
+
+      function drawOrderPreview() {
+        if (!state.selected || state.mode === "unit") return;
+        const selected = byId(state.selected);
+        const selectedPos = pos(selected);
+        const targets = state.direction === "target" ? originsFor(selected, state.mode) : legalTargets(state.selected);
+        ctx.save();
+        for (const target of targets) {
+          const targetPos = pos(target);
+          ctx.strokeStyle = "rgba(244, 212, 123, 0.6)";
+          ctx.lineWidth = 2;
+          ctx.setLineDash([5, 7]);
+          ctx.beginPath();
+          ctx.moveTo(selectedPos.x, selectedPos.y);
+          ctx.lineTo(targetPos.x, targetPos.y);
+          ctx.stroke();
+        }
+        const hover = state.hover ? byId(state.hover) : null;
+        const legalHover =
+          hover &&
+          (state.direction === "target"
+            ? isLegalPair(state.mode, hover, selected)
+            : isLegalPair(state.mode, selected, hover));
+        if (legalHover) {
+          const hoverPos = pos(hover);
+          ctx.setLineDash([]);
+          ctx.strokeStyle = state.mode === "attack" ? "#f09a83" : state.mode === "move" ? "#9fc783" : state.mode === "rail" ? "#f2ead1" : "#f3b766";
+          ctx.lineWidth = 5;
+          ctx.beginPath();
+          ctx.moveTo(selectedPos.x, selectedPos.y);
+          ctx.lineTo(hoverPos.x, hoverPos.y);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      function drawEnemyEvents() {
+        const now = Date.now();
+        state.enemyEvents = state.enemyEvents.filter((event) => event.until > now);
+        ctx.save();
+        function callout(x, y, icon, label, detail, until) {
+          const age = Math.max(0, until - now);
+          const bob = Math.sin(state.pulse * 1.4) * 3;
+          const alpha = Math.min(1, age / 900);
+          ctx.globalAlpha = alpha;
+          ctx.fillStyle = "rgba(67, 29, 25, 0.94)";
+          ctx.strokeStyle = "rgba(238, 118, 78, 0.68)";
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.roundRect(x - 76, y - 64 + bob, 152, 45, 8);
+          ctx.fill();
+          ctx.stroke();
+          ctx.fillStyle = "#f2eedf";
+          ctx.font = "800 12px Inter, system-ui, sans-serif";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(`${icon} ${label}`, x, y - 48 + bob);
+          ctx.fillStyle = "#f0b28a";
+          ctx.font = "700 10px Inter, system-ui, sans-serif";
+          ctx.fillText(detail, x, y - 32 + bob);
+          ctx.globalAlpha = 1;
+        }
+        for (const event of state.enemyEvents) {
+          if (event.type === "pressure") {
+            const from = pos(byId(event.from));
+            const to = pos(byId(event.to));
+            ctx.strokeStyle = "rgba(218, 91, 75, 0.9)";
+            ctx.lineWidth = 5;
+            ctx.setLineDash([10, 8]);
+            ctx.beginPath();
+            ctx.moveTo(from.x, from.y);
+            ctx.lineTo(to.x, to.y);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.fillStyle = "rgba(218, 91, 75, 0.95)";
+            ctx.beginPath();
+            ctx.arc(to.x, to.y, 12 + Math.sin(state.pulse) * 3, 0, Math.PI * 2);
+            ctx.fill();
+            callout(to.x, to.y, "!", event.label, event.detail, event.until);
+          }
+          if (event.type === "raid") {
+            const route = state.routes.find((item) => routeKey(item.a, item.b) === event.route);
+            if (!route) continue;
+            const pa = pos(byId(route.a));
+            const pb = pos(byId(route.b));
+            const mx = (pa.x + pb.x) / 2;
+            const my = (pa.y + pb.y) / 2;
+            ctx.strokeStyle = "rgba(238, 118, 78, 0.9)";
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.arc(mx, my, 22 + Math.sin(state.pulse) * 4, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.fillStyle = "rgba(238, 118, 78, 0.28)";
+            ctx.fill();
+            ctx.fillStyle = "#f2eedf";
+            ctx.font = "900 22px Inter, system-ui, sans-serif";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText("*", mx, my - 3);
+            callout(mx, my, "AIR", event.label, event.detail, event.until);
+          }
+        }
+        if (state.banner && state.banner.until > now) {
+          ctx.fillStyle = "rgba(67, 29, 25, 0.92)";
+          ctx.strokeStyle = "rgba(238, 118, 78, 0.55)";
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.roundRect(18, 86, 190, 38, 8);
+          ctx.fill();
+          ctx.stroke();
+          ctx.fillStyle = "#f2eedf";
+          ctx.font = "800 13px Inter, system-ui, sans-serif";
+          ctx.textAlign = "left";
+          ctx.textBaseline = "middle";
+          ctx.fillText(state.banner.text, 32, 105);
+        }
+        ctx.restore();
+      }
+
+      function drawNodes() {
+        for (const node of nodes) {
+          const p = pos(node);
+          const warning = nodeSupplyWarning(node);
+          const selected = state.selected === node.id || state.hudNode === node.id;
+          const hovered = state.hover === node.id;
+          const legal =
+            state.selected &&
+            (state.direction === "target"
+              ? originsFor(byId(state.selected), state.mode).some((origin) => origin.id === node.id)
+              : legalTargets(state.selected).some((target) => target.id === node.id));
+          const color = node.side === "ally" ? "#5f93b7" : node.side === "enemy" ? "#b65b4f" : "#8a826c";
+          if (legal) {
+            ctx.strokeStyle = state.mode === "attack" ? "rgba(240, 154, 131, 0.8)" : state.mode === "move" ? "rgba(159, 199, 131, 0.82)" : "rgba(244, 212, 123, 0.78)";
+            ctx.lineWidth = hovered ? 6 : 4;
+            hex(p.x, p.y, node.type === "city" ? 44 : 39, false);
+          }
+          ctx.fillStyle = color;
+          ctx.strokeStyle = selected ? "#f4d47b" : hovered ? "#fff2bd" : node.supply ? "#d6ccad" : "#25291f";
+          ctx.lineWidth = selected || hovered ? 5 : 3;
+          hex(p.x, p.y, node.type === "city" ? 29 : 24);
+          ctx.stroke();
+          if (node.supply) {
+            ctx.strokeStyle = `rgba(211, 162, 56, ${0.35 + Math.sin(state.pulse) * 0.15})`;
+            ctx.lineWidth = 3;
+            hex(p.x, p.y, node.type === "city" ? 38 : 33, false);
+          } else if (node.side === "ally" && node.received > 0) {
+            ctx.strokeStyle = "rgba(213, 64, 52, 0.72)";
+            ctx.lineWidth = 3;
+            hex(p.x, p.y, node.type === "city" ? 38 : 33, false);
+          }
+          ctx.fillStyle = "#11140f";
+          ctx.font = "700 13px Inter, system-ui, sans-serif";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(String(node.units), p.x, p.y);
+          ctx.fillStyle = "#f2eedf";
+          ctx.font = "700 12px Inter, system-ui, sans-serif";
+          ctx.fillText(node.name, p.x, p.y + 43);
+          if (node.demand > 0) {
+            ctx.fillStyle = node.supply ? "#d3a238" : node.received > 0 ? "#e07a65" : "#9f9580";
+            ctx.font = "700 11px Inter, system-ui, sans-serif";
+            ctx.fillText(`${node.received}/${node.demand} supply`, p.x, p.y + 58);
+          } else if (node.value) {
+            ctx.fillStyle = "#d3a238";
+            ctx.font = "700 11px Inter, system-ui, sans-serif";
+            ctx.fillText(`${node.value} VP`, p.x, p.y + 58);
+          }
+          if (warning) {
+            const badgeText = node.received > 0 ? "SUPPLY SHORT" : "NO SUPPLY";
+            const actionText = node.received > 0 ? "Upgrade road to rail" : "Connect to Utah";
+            ctx.fillStyle = "rgba(72, 28, 24, 0.94)";
+            ctx.strokeStyle = "rgba(238, 118, 78, 0.72)";
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.roundRect(p.x - 54, p.y - 72, 108, 34, 6);
+            ctx.fill();
+            ctx.stroke();
+            ctx.fillStyle = "#f2eedf";
+            ctx.font = "800 10px Inter, system-ui, sans-serif";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(badgeText, p.x, p.y - 62);
+            ctx.fillStyle = "#f0b28a";
+            ctx.font = "700 9px Inter, system-ui, sans-serif";
+            ctx.fillText(actionText, p.x, p.y - 49);
+          }
+        }
+      }
+
+      function updateUi() {
+        const demand = nodes.reduce((sum, node) => sum + node.demand, 0);
+        const delivered = nodes.reduce((sum, node) => sum + node.received, 0);
+        const capacity = state.routes.filter((route) => route.status === "built").reduce((sum, route) => sum + routeCapacity(route), 0);
+        const threat = threatTotal();
+        const objective = currentOrder();
+        ui.turn.textContent = state.turn;
+        ui.score.textContent = state.vp;
+        ui.supply.textContent = `${delivered}/${demand}`;
+        ui.threat.textContent = threat;
+        ui.vpGoal.textContent = `${Math.min(state.vp, goals.vp)}/${goals.vp}`;
+        ui.threatGoal.textContent = `${threat}/${goals.threat}`;
+        ui.vpMeter.style.width = `${Math.min(100, (state.vp / goals.vp) * 100)}%`;
+        ui.threatMeter.style.width = `${Math.min(100, (threat / goals.threat) * 100)}%`;
+        ui.objectiveState.textContent = state.outcome === "win" ? "Victory" : state.outcome === "loss" ? "Defeat" : `Turn ${state.turn}/${goals.finalTurn}`;
+        ui.orderKicker.textContent = objective.kicker;
+        ui.orderTitle.textContent = objective.title;
+        ui.orderCopy.textContent = objective.copy;
+        ui.roadCount.textContent = state.road;
+        ui.railCount.textContent = state.rail;
+        ui.unitCount.textContent = state.reserves;
+        ui.roadMeter.style.width = `${(state.road / 6) * 100}%`;
+        ui.railMeter.style.width = `${(state.rail / 3) * 100}%`;
+        ui.unitMeter.style.width = `${(state.reserves / goals.reserveCap) * 100}%`;
+        ui.supplyCount.textContent = capacity;
+        ui.supplyMeter.style.width = `${capacity ? Math.min(100, (delivered / capacity) * 100) : 0}%`;
+        [ui.road, ui.rail, ui.unit, ui.move, ui.attack, ui.end].forEach((button) => {
+          button.disabled = Boolean(state.outcome);
+        });
+        ui.log.innerHTML = state.log.map((item) => `<div class="log">${item}</div>`).join("");
+      }
+
+      function draw() {
+        const rect = canvas.getBoundingClientRect();
+        const width = rect.width;
+        const height = rect.height;
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.restore();
+        drawTerrain(canvas.clientWidth, canvas.clientHeight);
+        drawRoutes();
+        drawOrderPreview();
+        drawEnemyEvents();
+        drawNodes();
+        updateUi();
+      }
+
+      function animate(time) {
+        state.pulse = time / 520;
+        draw();
+        requestAnimationFrame(animate);
+      }
+
+      ui.road.addEventListener("click", () => setMode("road"));
+      ui.rail.addEventListener("click", () => setMode("rail"));
+      ui.unit.addEventListener("click", () => setMode("unit"));
+      ui.move.addEventListener("click", () => setMode("move"));
+      ui.attack.addEventListener("click", () => setMode("attack"));
+      ui.end.addEventListener("click", endTurn);
+      ui.nodeHud.addEventListener("click", (event) => {
+        const close = event.target.closest("[data-close]");
+        if (close) {
+          hideNodeHud();
+          draw();
+          return;
+        }
+        const step = event.target.closest("[data-move-step]");
+        if (step) {
+          const node = byId(state.hudNode);
+          if (!node) return;
+          const max = Math.max(1, ...originsFor(node, "move").map((origin) => moveCapacity(origin, node)));
+          state.moveAmount = Math.min(max, Math.max(1, state.moveAmount + Number(step.dataset.moveStep)));
+          showNodeHud(node);
+          draw();
+          return;
+        }
+        const attackStep = event.target.closest("[data-attack-step]");
+        if (attackStep) {
+          const node = byId(state.hudNode);
+          if (!node) return;
+          const max = Math.max(1, ...originsFor(node, "attack").map((origin) => attackCapacity(origin, node)));
+          state.attackAmount = Math.min(max, Math.max(1, state.attackAmount + Number(attackStep.dataset.attackStep)));
+          showNodeHud(node);
+          draw();
+          return;
+        }
+        const button = event.target.closest("[data-action]");
+        if (!button) return;
+        startHudAction(button.dataset.action);
+      });
+      ui.routeHud.addEventListener("click", (event) => {
+        const close = event.target.closest("[data-close]");
+        if (close) {
+          hideRouteHud();
+          draw();
+          return;
+        }
+        const button = event.target.closest("[data-route-action]");
+        if (!button) return;
+        if (button.dataset.routeAction === "repair") repairRoute(routeFromHud());
+        if (button.dataset.routeAction === "road" || button.dataset.routeAction === "rail") {
+          const corridor = corridorFromHud();
+          if (!corridor || !canBuildOnCorridor(corridor, button.dataset.routeAction)) return;
+          buildRoute(corridor.a, corridor.b, button.dataset.routeAction);
+          hideRouteHud();
+          draw();
+        }
+      });
+      canvas.addEventListener("click", handleClick);
+      canvas.addEventListener("mousemove", handleMove);
+      canvas.addEventListener("mouseleave", () => {
+        state.hover = null;
+        state.hoverRoute = null;
+        ui.tooltip.hidden = true;
+        draw();
+      });
+      window.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") cancelOrder();
+      });
+      window.addEventListener("resize", resize);
+
+      log("Objective: hold Falaise or reach 12 VP by the end of turn 10.");
+      log("Reinforcements add +2 reserves each turn, plus +1 per secured town/city.");
+      log("Supplied captured towns muster +1 local unit each turn, up to 3 units.");
+      log("No route is a faint printed corridor. Planned routes are dashed and say building x/y.");
+      log("Built route labels show supply load: used/capacity. A road carries 2; rail carries 4.");
+      log("Supply warnings show where to connect, repair, or upgrade routes so the front can fight.");
+      log("Hover full route labels for consequences and upgrade advice.");
+      log("Click a damaged route label to repair immediately with a road crew.");
+      log("Use Move to shift one or more units along a built route. Enemy nodes require Attack.");
+      log("Click corridors to build roads or upgrade rails. Click target nodes to Move here or Attack this.");
+      updateSupply();
+      resize();
+      requestAnimationFrame(animate);
+    </script>
+  </body>
+</html>
